@@ -196,6 +196,29 @@ CACHES = {
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
 
+
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")  # Tu correo de Gmail
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")  # Contraseña de aplicación
+DEFAULT_FROM_EMAIL = env("EMAIL_HOST_USER", default="noreply@pqrs.com")
+
+# Configuración PQRS
+PQRS_CONFIG = {
+    'DIAS_RESPUESTA': {
+        'peticion': 15,
+        'queja': 15,
+        'reclamo': 15,
+        'sugerencia': 30,
+    },
+    'DIAS_ALERTA_AMARILLA': 3,
+    'DIAS_ALERTA_ROJA': 0,
+}
+
+
 # Media Files (archivos subidos por usuarios)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

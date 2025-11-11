@@ -12,22 +12,11 @@ from .serializers import (
     CambiarEstadoSerializer,
     ResponderPQRSSerializer,
 )
+from apps.notifications.utils import enviar_email_pqrs_creada, enviar_email_pqrs_respondida
 
 
 class PQRSViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet para gestionar PQRS
-    
-    Endpoints:
-    - GET /api/pqrs/ - Listar todas las PQRS (requiere auth)
-    - POST /api/pqrs/ - Crear PQRS (público)
-    - GET /api/pqrs/{id}/ - Ver detalle (requiere auth)
-    - PUT /api/pqrs/{id}/ - Actualizar (requiere auth)
-    - DELETE /api/pqrs/{id}/ - Eliminar (requiere auth)
-    - GET /api/pqrs/consultar/{radicado}/ - Consultar por radicado (público)
-    - PATCH /api/pqrs/{id}/cambiar_estado/ - Cambiar estado (requiere auth)
-    - POST /api/pqrs/{id}/responder/ - Enviar respuesta (requiere auth)
-    """
+    """ViewSet para gestionar PQRS"""
     
     queryset = PQRS.objects.all()
     
@@ -44,9 +33,7 @@ class PQRSViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         """Define permisos según la acción"""
         if self.action in ['create', 'consultar']:
-            # Crear PQRS y consultar son públicos
             return [AllowAny()]
-        # Resto de acciones requieren autenticación
         return [IsAuthenticated()]
     
     def create(self, request, *args, **kwargs):
@@ -64,10 +51,12 @@ class PQRSViewSet(viewsets.ModelViewSet):
             usuario=None
         )
         
-        # Retornar el número de radicado
+        # Enviar email de confirmación
+        enviar_email_pqrs_creada(pqrs)
+        
         return Response({
             'success': True,
-            'message': 'PQRS creada exitosamente',
+            'message': 'PQRS creada exitosamente. Revise su correo electrónico.',
             'numero_radicado': pqrs.numero_radicado,
             'data': PQRSDetailSerializer(pqrs).data
         }, status=status.HTTP_201_CREATED)
@@ -90,14 +79,12 @@ class PQRSViewSet(viewsets.ModelViewSet):
             estado_nuevo = serializer.validated_data['estado_nuevo']
             observacion = serializer.validated_data['observacion']
             
-            # Actualizar estado
             pqrs.estado = estado_nuevo
             if estado_nuevo in ['resuelto', 'cerrado']:
                 from django.utils import timezone
                 pqrs.fecha_cierre = timezone.now()
             pqrs.save()
             
-            # Registrar en historial
             HistorialPQRS.objects.create(
                 pqrs=pqrs,
                 estado_anterior=estado_anterior,
@@ -127,7 +114,6 @@ class PQRSViewSet(viewsets.ModelViewSet):
                 usuario=request.user
             )
             
-            # Cambiar estado a "en_tramite" si está pendiente
             if pqrs.estado == 'pendiente':
                 pqrs.estado = 'en_tramite'
                 pqrs.save()
@@ -140,9 +126,12 @@ class PQRSViewSet(viewsets.ModelViewSet):
                     usuario=request.user
                 )
             
+            # Enviar email de respuesta
+            enviar_email_pqrs_respondida(pqrs, respuesta)
+            
             return Response({
                 'success': True,
-                'message': 'Respuesta enviada correctamente',
+                'message': 'Respuesta enviada correctamente. El ciudadano será notificado por correo.',
                 'data': PQRSDetailSerializer(pqrs).data
             })
         
@@ -150,7 +139,7 @@ class PQRSViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def archivar(self, request, pk=None):
-        """Archivar una PQRS (cambiar estado a cerrado)"""
+        """Archivar una PQRS"""
         pqrs = self.get_object()
         
         if pqrs.estado == 'cerrado':
