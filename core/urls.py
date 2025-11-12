@@ -14,6 +14,12 @@ urlpatterns = [
     # API de PQRS
     path('api/', include('apps.pqrs.urls')),
     
+    # API de Autenticación
+    path('api/auth/', include('apps.users.urls')),
+    
+    # API de Dashboard  🆕 AGREGA ESTA LÍNEA SI NO ESTÁ
+    path('api/dashboard/', include('apps.dashboard.urls')),
+    
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # Servir archivos media en desarrollo

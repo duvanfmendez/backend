@@ -13,6 +13,7 @@ from .serializers import (
     ResponderPQRSSerializer,
 )
 from apps.notifications.utils import enviar_email_pqrs_creada, enviar_email_pqrs_respondida
+from apps.users.permissions import CanManagePQRS
 
 
 class PQRSViewSet(viewsets.ModelViewSet):
@@ -33,8 +34,10 @@ class PQRSViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         """Define permisos según la acción"""
         if self.action in ['create', 'consultar']:
+            # Crear PQRS y consultar son públicos
             return [AllowAny()]
-        return [IsAuthenticated()]
+        # Resto de acciones requieren permisos de gestión
+        return [CanManagePQRS()]
     
     def create(self, request, *args, **kwargs):
         """Crear una nueva PQRS (público)"""
