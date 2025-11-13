@@ -1,38 +1,30 @@
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.conf import settings
 from django.utils import timezone
 from .models import Notificacion
 
 
 def enviar_email_pqrs_creada(pqrs):
-    """Envía email cuando se crea una PQRS"""
+    """Envia email cuando se crea una PQRS"""
     
-    asunto = f"PQRS Registrada Exitosamente - {pqrs.numero_radicado}"
+    asunto = f"PQRS Registrada - {pqrs.numero_radicado}"
     
     mensaje = f"""
-Estimado/a {pqrs.nombre_completo},
+Hola {pqrs.nombre_completo},
 
-Su PQRS ha sido registrada exitosamente en nuestro sistema.
+Su PQRS ha sido registrada exitosamente.
 
-DATOS DE SU SOLICITUD:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Número de Radicado: {pqrs.numero_radicado}
+Numero de Radicado: {pqrs.numero_radicado}
 Tipo: {pqrs.get_tipo_display()}
 Asunto: {pqrs.asunto}
-Fecha de Radicación: {pqrs.fecha_radicacion.strftime('%d/%m/%Y %H:%M')}
-Fecha Límite de Respuesta: {pqrs.fecha_limite_respuesta.strftime('%d/%m/%Y')}
+Fecha: {pqrs.fecha_radicacion.strftime('%d/%m/%Y %H:%M')}
 
-IMPORTANTE:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Guarde este número de radicado para consultar el estado de su solicitud.
-
-Puede consultar el estado en cualquier momento ingresando su número de radicado.
+Guarde este numero para consultar el estado.
 
 Atentamente,
-Sistema de PQRS - ELITE
+Sistema PQRS
     """
     
-    # Crear registro de notificación
     notificacion = Notificacion.objects.create(
         pqrs=pqrs,
         tipo='pqrs_creada',
@@ -42,16 +34,16 @@ Sistema de PQRS - ELITE
     )
     
     try:
-        # Enviar email
-        send_mail(
+        email = EmailMessage(
             subject=asunto,
-            message=mensaje,
+            body=mensaje,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[pqrs.correo_electronico],
-            fail_silently=False,
+            to=[pqrs.correo_electronico],
         )
+        email.content_subtype = "plain"
+        email.encoding = 'utf-8'
+        email.send(fail_silently=False)
         
-        # Marcar como enviado
         notificacion.enviado = True
         notificacion.fecha_envio = timezone.now()
         notificacion.save()
@@ -59,42 +51,32 @@ Sistema de PQRS - ELITE
         return True
     
     except Exception as e:
-        # Registrar error
         notificacion.error = str(e)
         notificacion.save()
+        print(f"Error: {e}")
         return False
 
 
 def enviar_email_pqrs_respondida(pqrs, respuesta):
-    """Envía email cuando se responde una PQRS"""
+    """Envia email cuando se responde una PQRS"""
     
-    asunto = f"Respuesta a su PQRS - {pqrs.numero_radicado}"
+    asunto = f"Respuesta a PQRS - {pqrs.numero_radicado}"
     
     mensaje = f"""
-Estimado/a {pqrs.nombre_completo},
+Hola {pqrs.nombre_completo},
 
-Su PQRS ha sido respondida por nuestro equipo.
+Su PQRS ha sido respondida.
 
-DATOS DE SU SOLICITUD:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Número de Radicado: {pqrs.numero_radicado}
+Numero: {pqrs.numero_radicado}
 Tipo: {pqrs.get_tipo_display()}
-Asunto: {pqrs.asunto}
 
-RESPUESTA:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Respuesta:
 {respuesta.respuesta}
 
-Respondido por: {respuesta.usuario.get_full_name() if respuesta.usuario else 'Sistema'}
-Fecha: {respuesta.fecha_respuesta.strftime('%d/%m/%Y %H:%M')}
-
-Si tiene alguna pregunta adicional, no dude en contactarnos.
-
 Atentamente,
-Sistema de PQRS - ELITE
+Sistema PQRS
     """
     
-    # Crear registro de notificación
     notificacion = Notificacion.objects.create(
         pqrs=pqrs,
         tipo='pqrs_respondida',
@@ -104,16 +86,16 @@ Sistema de PQRS - ELITE
     )
     
     try:
-        # Enviar email
-        send_mail(
+        email = EmailMessage(
             subject=asunto,
-            message=mensaje,
+            body=mensaje,
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[pqrs.correo_electronico],
-            fail_silently=False,
+            to=[pqrs.correo_electronico],
         )
+        email.content_subtype = "plain"
+        email.encoding = 'utf-8'
+        email.send(fail_silently=False)
         
-        # Marcar como enviado
         notificacion.enviado = True
         notificacion.fecha_envio = timezone.now()
         notificacion.save()
@@ -121,9 +103,7 @@ Sistema de PQRS - ELITE
         return True
     
     except Exception as e:
-        # Registrar error
         notificacion.error = str(e)
         notificacion.save()
+        print(f"Error: {e}")
         return False
-    
-    
